@@ -1,0 +1,9 @@
+backend/
+node_modules/
+.env
+.env.local
+.git/
+*.log
+.DS_Store
+README.md
+SETUP.md

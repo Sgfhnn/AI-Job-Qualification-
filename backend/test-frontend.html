@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Job Platform Test Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h2 {
+            color: #2563eb;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f0f9ff;
+            border: 1px solid #0ea5e9;
+        }
+        .error {
+            background-color: #fef2f2;
+            border-color: #ef4444;
+            color: #dc2626;
+        }
+        .success {
+            background-color: #f0fdf4;
+            border-color: #22c55e;
+            color: #16a34a;
+        }
+        pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Job Platform Test Interface</h1>
+        
+        <!-- Job Creation Section -->
+        <div class="section">
+            <h2>📝 Create Job with AI Form Generation</h2>
+            <div class="form-group">
+                <label for="jobTitle">Job Title:</label>
+                <input type="text" id="jobTitle" value="Software Developer" placeholder="Enter job title">
+            </div>
+            <div class="form-group">
+                <label for="requirements">Job Requirements:</label>
+                <textarea id="requirements" placeholder="Enter job requirements">We are looking for a senior full stack developer with 5+ years experience in React, Node.js, and PostgreSQL. Must have experience with AWS, Docker, and microservices architecture.</textarea>
+            </div>
+            <button onclick="createJob()">🚀 Generate AI Form</button>
+            <div id="jobResult"></div>
+        </div>
+
+        <!-- Candidate Analysis Section -->
+        <div class="section">
+            <h2>🎯 AI Candidate Analysis</h2>
+            <div class="form-group">
+                <label for="jobReqs">Job Requirements:</label>
+                <textarea id="jobReqs" placeholder="Job requirements for analysis">React developer with 3+ years experience in building web applications</textarea>
+            </div>
+            <div class="form-group">
+                <label for="resumeText">Resume Text:</label>
+                <textarea id="resumeText" placeholder="Candidate's resume content">Senior React developer with 5 years of experience at tech companies. Built multiple web applications using React, JavaScript, and Node.js. Strong problem-solving skills and team collaboration experience.</textarea>
+            </div>
+            <div class="form-group">
+                <label for="candidateName">Candidate Name:</label>
+                <input type="text" id="candidateName" value="John Doe" placeholder="Candidate name">
+            </div>
+            <div class="form-group">
+                <label for="candidateSkills">Skills:</label>
+                <input type="text" id="candidateSkills" value="React, JavaScript, Node.js, HTML, CSS" placeholder="Candidate skills">
+            </div>
+            <button onclick="analyzeCandidate()">🔍 Analyze Candidate</button>
+            <div id="analysisResult"></div>
+        </div>
+
+        <!-- Server Status -->
+        <div class="section">
+            <h2>⚡ Server Status</h2>
+            <button onclick="checkHealth()">Check Server Health</button>
+            <div id="healthResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+
+        async function createJob() {
+            const jobTitle = document.getElementById('jobTitle').value;
+            const requirements = document.getElementById('requirements').value;
+            
+            if (!jobTitle || !requirements) {
+                showResult('jobResult', 'Please fill in both job title and requirements', 'error');
+                return;
+            }
+
+            try {
+                showResult('jobResult', 'Creating job with AI form generation...', 'info');
+                
+                const response = await fetch(`${API_BASE}/api/jobs/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        jobTitle: jobTitle,
+                        requirements: requirements
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    let resultHtml = `<div class="success">
+                        <h3>✅ Job Created Successfully!</h3>
+                        <p><strong>Job ID:</strong> ${data.jobId}</p>
+                        <p><strong>Generated Fields:</strong> ${data.formFields.length}</p>
+                        <h4>Form Fields:</h4>
+                        <ul>`;
+                    
+                    data.formFields.forEach(field => {
+                        resultHtml += `<li><strong>${field.label}</strong> (${field.type}${field.required ? ', required' : ''})</li>`;
+                    });
+                    
+                    resultHtml += `</ul></div>`;
+                    document.getElementById('jobResult').innerHTML = resultHtml;
+                } else {
+                    showResult('jobResult', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('jobResult', `Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function analyzeCandidate() {
+            const jobRequirements = document.getElementById('jobReqs').value;
+            const resumeText = document.getElementById('resumeText').value;
+            const candidateName = document.getElementById('candidateName').value;
+            const candidateSkills = document.getElementById('candidateSkills').value;
+
+            try {
+                showResult('analysisResult', 'Analyzing candidate with AI...', 'info');
+                
+                const response = await fetch(`${API_BASE}/api/test/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        jobRequirements: jobRequirements,
+                        resumeText: resumeText,
+                        formData: {
+                            name: candidateName,
+                            skills: candidateSkills
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const analysis = data.analysis;
+                    let resultHtml = `<div class="success">
+                        <h3>🎯 Candidate Analysis Complete!</h3>
+                        <p><strong>Score:</strong> ${analysis.score}%</p>
+                        <p><strong>Explanation:</strong> ${analysis.explanation}</p>
+                        
+                        <h4>💪 Strengths:</h4>
+                        <ul>`;
+                    
+                    analysis.strengths.forEach(strength => {
+                        resultHtml += `<li>${strength}</li>`;
+                    });
+                    
+                    resultHtml += `</ul><h4>⚠️ Concerns:</h4><ul>`;
+                    
+                    analysis.concerns.forEach(concern => {
+                        resultHtml += `<li>${concern}</li>`;
+                    });
+                    
+                    resultHtml += `</ul><h4>📋 Recommendation:</h4>
+                        <p>${analysis.recommendation}</p>
+                    </div>`;
+                    
+                    document.getElementById('analysisResult').innerHTML = resultHtml;
+                } else {
+                    showResult('analysisResult', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('analysisResult', `Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                showResult('healthResult', `✅ Server Status: ${data.status} - ${data.message}`, 'success');
+            } catch (error) {
+                showResult('healthResult', `❌ Server Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        // Check server health on page load
+        window.onload = function() {
+            checkHealth();
+        };
+    </script>
+</body>
+</html>
