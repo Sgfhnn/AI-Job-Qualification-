@@ -14,7 +14,7 @@ services:
       - key: SUPABASE_SERVICE_KEY
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1dWFsaHR1a3BnZWNkenJubHdxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNjA3MTMzMiwiZXhwIjoyMDUxNjQ3MzMyfQ.kOzFKQmOTdWxfKdJMOYCJLLJCJSdKzJzJzJzJzJzJzJ
       - key: GEMINI_API_KEY
-        value: AIzaSyCFg9g5F4GtOziXfy-5iyu_Gzfgh194LJI
+        value: AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0
       - key: NODE_ENV
         value: production
       - key: PORT

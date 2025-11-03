@@ -303,6 +303,22 @@ Provide a comprehensive analysis. Return ONLY valid JSON with no markdown:
 }
 
 // Routes
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'AI Job Platform API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      createJob: 'POST /api/jobs/create',
+      getJobs: 'GET /api/jobs',
+      getJob: 'GET /api/jobs/:jobId',
+      submitApplication: 'POST /api/applications/submit',
+      getApplicants: 'GET /api/jobs/:jobId/applicants'
+    }
+  })
+})
+
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'AI Job Platform API is running' })
 })
