@@ -4,8 +4,8 @@
   "description": "Backend API for AI Job Qualification Platform",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server-simple.js",
-    "start": "node server-simple.js",
+    "dev": "nodemon server.js",
+    "start": "node server.js",
     "build": "echo 'No build step required'"
   },
   "dependencies": {
