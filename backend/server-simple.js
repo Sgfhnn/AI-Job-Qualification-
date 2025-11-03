@@ -323,6 +323,19 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'AI Job Platform API is running' })
 })
 
+// Diagnostic endpoint to check API configuration
+app.get('/api/diagnostic', (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0'
+  res.json({
+    status: 'OK',
+    geminiApiKey: apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT SET',
+    geminiApiKeyLength: apiKey?.length || 0,
+    geminiApiKeyValid: apiKey?.startsWith('AIzaSyBjiP') ? '✅ Correct key' : '❌ Wrong key',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  })
+})
+
 // Create job
 app.post('/api/jobs/create', async (req, res) => {
   try {

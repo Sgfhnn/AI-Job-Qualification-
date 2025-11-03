@@ -276,11 +276,17 @@ Return ONLY this JSON structure:
         throw new Error('Could not extract JSON from Gemini response')
       }
     } catch (error) {
-      console.error('Gemini API Error:', error.response?.data || error.message)
+      console.error('❌ Gemini API Error:', error.response?.data || error.message)
+      console.error('❌ Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        apiKey: this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET'
+      })
       
       // Check if it's an API key issue
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error('API Key issue - check GEMINI_API_KEY environment variable')
+        console.error('🔑 API Key issue - The API key is invalid or expired')
+        console.error('🔑 Current key starts with:', this.apiKey?.substring(0, 20))
       }
       
       // Generate realistic fallback analysis based on actual form data
