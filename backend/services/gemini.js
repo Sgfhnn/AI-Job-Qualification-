@@ -15,19 +15,12 @@ class GeminiService {
   }
 
   async generateFormFields(jobTitle, requirements) {
-    const prompt = `Create a job application form for: ${jobTitle}
+    const prompt = `Create 4 fields for: ${jobTitle}
 
-Requirements: ${requirements}
+Return JSON array with name, email, plus 2 job-specific fields:
+[{"name":"name","type":"text","label":"Full Name","required":true},{"name":"email","type":"email","label":"Email","required":true}]
 
-Generate EXACTLY 6 fields: name, email, plus 4 job-specific fields.
-
-Return ONLY valid JSON array:
-[
-  {"name": "name", "type": "text", "label": "Full Name", "required": true},
-  {"name": "email", "type": "email", "label": "Email", "required": true}
-]
-
-Keep labels under 40 characters. Use types: text, email, textarea, select (max 4 options).`
+Keep it SHORT. No spaces in JSON. Max 2 options for select fields.`
 
     try {
       console.log('Generating form fields for:', jobTitle)
@@ -49,7 +42,7 @@ Keep labels under 40 characters. Use types: text, email, textarea, select (max 4
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 512,
           }
         },
         {
@@ -208,7 +201,7 @@ Return ONLY JSON:
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 512,
           },
           safetySettings: [
             {
