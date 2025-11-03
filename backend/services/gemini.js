@@ -250,11 +250,43 @@ Return ONLY this JSON structure:
 
       console.log('AI Analysis Response Status:', response.status)
       
-      if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
-        throw new Error('Invalid response structure from Gemini API')
+      // Detailed response validation
+      if (!response.data) {
+        console.error('No response.data')
+        throw new Error('No data in Gemini API response')
+      }
+      
+      if (!response.data.candidates) {
+        console.error('No candidates in response:', JSON.stringify(response.data).substring(0, 500))
+        throw new Error('No candidates in Gemini API response')
+      }
+      
+      if (!response.data.candidates[0]) {
+        console.error('No first candidate:', response.data.candidates)
+        throw new Error('Empty candidates array from Gemini API')
+      }
+      
+      if (!response.data.candidates[0].content) {
+        console.error('No content in candidate:', response.data.candidates[0])
+        throw new Error('No content in Gemini API candidate')
+      }
+      
+      if (!response.data.candidates[0].content.parts) {
+        console.error('No parts in content:', response.data.candidates[0].content)
+        throw new Error('No parts in Gemini API content')
+      }
+      
+      if (!response.data.candidates[0].content.parts[0]) {
+        console.error('No first part:', response.data.candidates[0].content.parts)
+        throw new Error('Empty parts array from Gemini API')
       }
 
       const generatedText = response.data.candidates[0].content.parts[0].text
+      
+      if (!generatedText) {
+        console.error('No text in part:', response.data.candidates[0].content.parts[0])
+        throw new Error('No text in Gemini API response')
+      }
       console.log('Generated analysis text:', generatedText.substring(0, 200) + '...')
       
       // Remove markdown code blocks
