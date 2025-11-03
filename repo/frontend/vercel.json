@@ -1,0 +1,22 @@
+{
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/employer/dashboard/([^/]+)",
+      "dest": "/employer/dashboard/[jobId]"
+    },
+    {
+      "src": "/apply/([^/]+)",
+      "dest": "/apply/[jobId]"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

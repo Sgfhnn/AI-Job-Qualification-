@@ -37,15 +37,30 @@ let jobs = []
 let applications = []
 
 // Gemini AI service
-const { GoogleGenerativeAI } = require('@google/generative-ai')
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0')
+const geminiService = require('./services/gemini')
 
 async function generateJobForm(jobTitle, requirements) {
   console.log(`🤖 Generating AI form for: ${jobTitle}`)
   console.log(`📋 Requirements: ${requirements}`)
   
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    // Use the fixed geminiService instead of direct SDK
+    const formFields = await geminiService.generateFormFields(jobTitle, requirements)
+    console.log(`✅ Generated ${formFields.length} custom form fields`)
+    return formFields
+  } catch (error) {
+    console.error('❌ AI Form Generation Error:', error.message)
+    console.log('🔄 Using geminiService fallback...')
+    
+    // geminiService has its own fallback, but add extra safety
+    return geminiService.generateJobSpecificFallback(jobTitle, requirements)
+  }
+}
+
+// Old implementation removed - now using geminiService
+async function generateJobFormOLD(jobTitle, requirements) {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
     
     const prompt = `You are an expert HR professional. Create a comprehensive job application form for a "${jobTitle}" position.
 
@@ -138,7 +153,23 @@ async function analyzeCandidate(jobRequirements, formData, resumeText = '') {
   console.log(`📊 Form data keys: ${Object.keys(formData).join(', ')}`)
   
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    // Use the fixed geminiService for analysis
+    const analysis = await geminiService.analyzeCandidate(jobRequirements, resumeText, formData)
+    console.log(`✅ AI Analysis complete - Score: ${analysis.score}%`)
+    return analysis
+  } catch (error) {
+    console.error('❌ AI Analysis Error:', error.message)
+    console.log('🔄 Using geminiService fallback analysis...')
+    
+    // geminiService has its own intelligent fallback
+    return geminiService.analyzeCandidate(jobRequirements, resumeText, formData)
+  }
+}
+
+// Old implementation removed - now using geminiService
+async function analyzeCandidateOLD(jobRequirements, formData, resumeText = '') {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
     
     const candidateInfo = Object.entries(formData)
       .filter(([key, value]) => value && value.toString().trim())
@@ -273,26 +304,7 @@ Provide a comprehensive analysis. Return ONLY valid JSON with no markdown:
 
 // Routes
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'AI Job Platform API is running',
-    geminiConfigured: !!process.env.GEMINI_API_KEY,
-    uploadsDir: uploadsDir,
-    jobsCount: jobs.length,
-    applicationsCount: applications.length
-  })
-})
-
-// Debug endpoint for checking environment
-app.get('/api/debug/env', (req, res) => {
-  res.json({
-    nodeEnv: process.env.NODE_ENV,
-    port: process.env.PORT,
-    geminiKeyExists: !!process.env.GEMINI_API_KEY,
-    geminiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
-    uploadsDir: uploadsDir,
-    uploadsDirExists: fs.existsSync(uploadsDir)
-  })
+  res.json({ status: 'OK', message: 'AI Job Platform API is running' })
 })
 
 // Create job
@@ -347,7 +359,7 @@ app.get('/api/jobs', (req, res) => {
   })
 })
 
-// Get specific job - FIXED TO RETURN CONSISTENT STRUCTURE
+// Get specific job
 app.get('/api/jobs/:jobId', (req, res) => {
   const { jobId } = req.params
   const job = jobs.find(j => j.id === jobId)
@@ -359,16 +371,9 @@ app.get('/api/jobs/:jobId', (req, res) => {
     })
   }
   
-  // Return job with consistent field names that match frontend expectations
   res.json({
     success: true,
-    job: {
-      id: job.id,
-      jobTitle: job.jobTitle,
-      requirements: job.requirements,
-      formFields: job.formFields,
-      createdAt: job.createdAt
-    }
+    job
   })
 })
 
@@ -413,35 +418,18 @@ app.post('/api/applications/submit', upload.single('resume'), async (req, res) =
     }
 
     console.log('🔍 Starting AI analysis...')
-    let analysis
-    try {
-      analysis = await analyzeCandidate(job.requirements, formData, resumeText)
-      console.log('✅ AI analysis completed successfully')
-    } catch (analysisError) {
-      console.error('❌ AI analysis failed:', analysisError.message)
-      // Provide fallback analysis
-      analysis = {
-        score: 50,
-        strengths: ['Application submitted successfully'],
-        concerns: ['AI analysis temporarily unavailable'],
-        recommendation: 'Manual review recommended - AI analysis failed',
-        summary: 'AI analysis failed, requires manual review'
-      }
-    }
+    const analysis = await analyzeCandidate(job.requirements, formData, resumeText)
     
     const application = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9),
       jobId,
       formData,
       resumeFile: req.file ? req.file.filename : null,
-      resumeOriginalName: req.file ? req.file.originalname : null,
       analysis,
       submittedAt: new Date().toISOString()
     }
     
     applications.push(application)
-    
-    console.log(`✅ Application submitted with score: ${analysis.score}%`)
     
     res.json({
       success: true,
@@ -466,27 +454,6 @@ app.get('/api/jobs/:jobId/applicants', (req, res) => {
     success: true,
     applicants: jobApplications
   })
-})
-
-// Serve resume files
-app.get('/api/resumes/:filename', (req, res) => {
-  const { filename } = req.params
-  const filePath = path.join(uploadsDir, filename)
-  
-  // Check if file exists
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ 
-      success: false, 
-      error: 'Resume file not found' 
-    })
-  }
-  
-  // Set appropriate headers
-  res.setHeader('Content-Type', 'application/octet-stream')
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-  
-  // Send file
-  res.sendFile(filePath)
 })
 
 // Test endpoint

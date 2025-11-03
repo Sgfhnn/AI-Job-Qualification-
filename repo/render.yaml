@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ai-job-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        value: https://wuualhtukpgecdzrnlwq.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1dWFsaHR1a3BnZWNkenJubHdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYwNzEzMzIsImV4cCI6MjA1MTY0NzMzMn0.kOzFKQmOTdWxfKdJMOYCJLLJCJSdKzJzJzJzJzJzJzJ
+      - key: SUPABASE_SERVICE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1dWFsaHR1a3BnZWNkenJubHdxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNjA3MTMzMiwiZXhwIjoyMDUxNjQ3MzMyfQ.kOzFKQmOTdWxfKdJMOYCJLLJCJSdKzJzJzJzJzJzJzJ
+      - key: GEMINI_API_KEY
+        value: AIzaSyCFg9g5F4GtOziXfy-5iyu_Gzfgh194LJI
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
