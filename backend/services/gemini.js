@@ -3,7 +3,7 @@ const axios = require('axios')
 class GeminiService {
   constructor() {
     // Use environment variable first, fallback to hardcoded for production
-    this.apiKey = process.env.GEMINI_API_KEY || 'AIzaSyCFg9g5F4GtOziXfy-5iyu_Gzfgh194LJI'
+    this.apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0'
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
     
     // Debug API key
@@ -54,7 +54,7 @@ Return ONLY the JSON array, no other text:
       }
 
       const response = await axios.post(
-        this.baseUrl,
+        `${this.baseUrl}?key=${this.apiKey}`,
         {
           contents: [{
             parts: [{
@@ -70,8 +70,7 @@ Return ONLY the JSON array, no other text:
         },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': this.apiKey
+            'Content-Type': 'application/json'
           },
           timeout: 30000
         }
@@ -86,14 +85,23 @@ Return ONLY the JSON array, no other text:
       const generatedText = response.data.candidates[0].content.parts[0].text
       console.log('Generated text:', generatedText.substring(0, 200) + '...')
       
+      // Remove markdown code blocks
+      let cleanText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      
       // Extract JSON from the response with better regex
-      const jsonMatch = generatedText.match(/\[[\s\S]*?\]/g)
-      if (jsonMatch && jsonMatch.length > 0) {
-        const parsedFields = JSON.parse(jsonMatch[0])
-        console.log('Successfully parsed form fields:', parsedFields.length, 'fields')
-        return parsedFields
+      const jsonMatch = cleanText.match(/\[[\s\S]*\]/)
+      if (jsonMatch) {
+        try {
+          const parsedFields = JSON.parse(jsonMatch[0])
+          console.log('Successfully parsed form fields:', parsedFields.length, 'fields')
+          return parsedFields
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError.message)
+          console.error('Attempted to parse:', jsonMatch[0].substring(0, 500))
+          throw parseError
+        }
       } else {
-        console.error('Could not extract JSON from response:', generatedText)
+        console.error('Could not extract JSON from response:', cleanText.substring(0, 500))
         throw new Error('Could not extract JSON from Gemini response')
       }
     } catch (error) {
@@ -218,7 +226,7 @@ Return ONLY this JSON structure:
       }
 
       const response = await axios.post(
-        this.baseUrl,
+        `${this.baseUrl}?key=${this.apiKey}`,
         {
           contents: [{
             parts: [{
@@ -234,8 +242,7 @@ Return ONLY this JSON structure:
         },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': this.apiKey
+            'Content-Type': 'application/json'
           },
           timeout: 30000
         }
@@ -250,9 +257,12 @@ Return ONLY this JSON structure:
       const generatedText = response.data.candidates[0].content.parts[0].text
       console.log('Generated analysis text:', generatedText.substring(0, 200) + '...')
       
+      // Remove markdown code blocks
+      let cleanText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      
       // Extract JSON from the response with better regex
-      const jsonMatch = generatedText.match(/\{[\s\S]*?\}/g)
-      if (jsonMatch && jsonMatch.length > 0) {
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
         const analysis = JSON.parse(jsonMatch[0])
         console.log('Successfully parsed analysis with score:', analysis.score)
         
@@ -262,7 +272,7 @@ Return ONLY this JSON structure:
         
         return analysis
       } else {
-        console.error('Could not extract JSON from analysis response:', generatedText)
+        console.error('Could not extract JSON from analysis response:', cleanText)
         throw new Error('Could not extract JSON from Gemini response')
       }
     } catch (error) {

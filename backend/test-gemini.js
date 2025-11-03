@@ -1,5 +1,5 @@
 // Set the API key directly for testing
-process.env.GEMINI_API_KEY = 'AIzaSyCFg9g5F4GtOziXfy-5iyu_Gzfgh194LJI'
+process.env.GEMINI_API_KEY = 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0'
 
 const geminiService = require('./services/gemini')
 

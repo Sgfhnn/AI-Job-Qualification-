@@ -1,5 +1,5 @@
 // Simple test without database - just test AI functionality
-process.env.GEMINI_API_KEY = 'AIzaSyCFg9g5F4GtOziXfy-5iyu_Gzfgh194LJI'
+process.env.GEMINI_API_KEY = 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0'
 
 const express = require('express')
 const cors = require('cors')

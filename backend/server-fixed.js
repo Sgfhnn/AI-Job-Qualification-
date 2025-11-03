@@ -38,7 +38,7 @@ let applications = []
 
 // Gemini AI service
 const { GoogleGenerativeAI } = require('@google/generative-ai')
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCFg9g5F4GtOziXfy-5iyu_Gzfgh194LJI')
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0')
 
 async function generateJobForm(jobTitle, requirements) {
   console.log(`🤖 Generating AI form for: ${jobTitle}`)
