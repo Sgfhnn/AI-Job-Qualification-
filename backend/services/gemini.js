@@ -15,35 +15,19 @@ class GeminiService {
   }
 
   async generateFormFields(jobTitle, requirements) {
-    const prompt = `
-You are an expert HR AI that creates highly customized job application forms. Analyze the job title and requirements to generate UNIQUE, RELEVANT form fields.
+    const prompt = `Create a job application form for: ${jobTitle}
 
-Job Title: ${jobTitle}
-Job Requirements: ${requirements}
+Requirements: ${requirements}
 
-IMPORTANT: Create form fields that are SPECIFICALLY tailored to this exact job. Different jobs should have completely different forms.
+Generate EXACTLY 6 fields: name, email, plus 4 job-specific fields.
 
-Rules:
-1. ALWAYS include: name (text), email (email)
-2. Analyze the job requirements and create 6-12 additional fields that are SPECIFIC to this role
-3. For technical roles: ask about programming languages, frameworks, tools, certifications
-4. For creative roles: ask about portfolio, design tools, creative experience
-5. For management roles: ask about team size, leadership experience, budget management
-6. For sales roles: ask about sales targets, CRM experience, client management
-7. For customer service: ask about conflict resolution, communication skills
-8. Make field names descriptive and job-specific
-9. Use appropriate field types (text, textarea, select, number)
-10. Create realistic options for select fields
+Return ONLY valid JSON array:
+[
+  {"name": "name", "type": "text", "label": "Full Name", "required": true},
+  {"name": "email", "type": "email", "label": "Email", "required": true}
+]
 
-Generate a JSON array with fields that NO OTHER JOB would have the exact same combination.
-
-Job-Specific Examples:
-- Software Developer: "programmingLanguages", "frameworkExperience", "githubProfile", "codingChallengePreference"
-- Graphic Designer: "designSoftwareProficiency", "portfolioUrl", "designSpecialty", "clientProjectExperience"
-- Sales Manager: "salesTargetAchievement", "teamManagementExperience", "crmSystemsUsed", "industryExperience"
-
-Return ONLY the JSON array, no other text:
-`
+Keep labels under 40 characters. Use types: text, email, textarea, select (max 4 options).`
 
     try {
       console.log('Generating form fields for:', jobTitle)
@@ -65,7 +49,7 @@ Return ONLY the JSON array, no other text:
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 1024,
           }
         },
         {
@@ -186,33 +170,20 @@ Return ONLY the JSON array, no other text:
   }
 
   async analyzeCandidate(jobRequirements, resumeText, formData) {
-    const prompt = `
-You are an expert AI recruiter with deep hiring experience. Analyze this specific candidate against the exact job requirements and provide a UNIQUE, DETAILED analysis.
+    const prompt = `Analyze this candidate for the job.
 
-Job Requirements: ${jobRequirements}
+Job: ${jobRequirements}
+Resume: ${resumeText || 'Not provided'}
+Data: ${JSON.stringify(formData)}
 
-Resume Content: ${resumeText}
-
-Application Form Data: ${JSON.stringify(formData, null, 2)}
-
-CRITICAL INSTRUCTIONS:
-1. Analyze EVERY detail in the resume and form data
-2. Compare SPECIFICALLY against the job requirements
-3. Give a UNIQUE score (not generic 75%) based on actual fit
-4. Provide SPECIFIC strengths and concerns based on actual content
-5. Make PERSONALIZED recommendations
-6. Consider: technical skills match, experience relevance, cultural fit, growth potential
-7. Score should reflect: 90-100% (excellent fit), 70-89% (good fit), 50-69% (moderate fit), 30-49% (poor fit), 0-29% (no fit)
-
-Return ONLY this JSON structure:
+Return ONLY JSON:
 {
-  "score": <precise number 0-100 based on actual analysis>,
-  "explanation": "<detailed 3-4 sentence explanation of why this specific score, mentioning specific skills/experience>",
-  "strengths": ["<specific strength 1>", "<specific strength 2>", "<specific strength 3>"],
-  "concerns": ["<specific concern 1>", "<specific concern 2>"],
-  "recommendation": "<hire/consider/reject with specific reasoning based on analysis>"
-}
-`
+  "score": 85,
+  "explanation": "Detailed analysis mentioning specific skills",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "concerns": ["concern 1", "concern 2"],
+  "recommendation": "hire/consider/reject with reasoning"
+}`
 
     return await this.makeRequest(prompt, formData, resumeText)
   }
@@ -237,8 +208,26 @@ Return ONLY this JSON structure:
             temperature: 0.3,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 2048,
-          }
+            maxOutputTokens: 1024,
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_NONE"
+            }
+          ]
         },
         {
           headers: {
