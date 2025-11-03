@@ -37,13 +37,28 @@ let jobs = []
 let applications = []
 
 // Gemini AI service
-const { GoogleGenerativeAI } = require('@google/generative-ai')
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0')
+const geminiService = require('./services/gemini')
 
 async function generateJobForm(jobTitle, requirements) {
   console.log(`🤖 Generating AI form for: ${jobTitle}`)
   console.log(`📋 Requirements: ${requirements}`)
   
+  try {
+    // Use the fixed geminiService instead of direct SDK
+    const formFields = await geminiService.generateFormFields(jobTitle, requirements)
+    console.log(`✅ Generated ${formFields.length} custom form fields`)
+    return formFields
+  } catch (error) {
+    console.error('❌ AI Form Generation Error:', error.message)
+    console.log('🔄 Using geminiService fallback...')
+    
+    // geminiService has its own fallback, but add extra safety
+    return geminiService.generateJobSpecificFallback(jobTitle, requirements)
+  }
+}
+
+// Old implementation removed - now using geminiService
+async function generateJobFormOLD(jobTitle, requirements) {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
     
@@ -137,6 +152,22 @@ async function analyzeCandidate(jobRequirements, formData, resumeText = '') {
   console.log(`🔍 Analyzing candidate for job requirements...`)
   console.log(`📊 Form data keys: ${Object.keys(formData).join(', ')}`)
   
+  try {
+    // Use the fixed geminiService for analysis
+    const analysis = await geminiService.analyzeCandidate(jobRequirements, resumeText, formData)
+    console.log(`✅ AI Analysis complete - Score: ${analysis.score}%`)
+    return analysis
+  } catch (error) {
+    console.error('❌ AI Analysis Error:', error.message)
+    console.log('🔄 Using geminiService fallback analysis...')
+    
+    // geminiService has its own intelligent fallback
+    return geminiService.analyzeCandidate(jobRequirements, resumeText, formData)
+  }
+}
+
+// Old implementation removed - now using geminiService
+async function analyzeCandidateOLD(jobRequirements, formData, resumeText = '') {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
     
