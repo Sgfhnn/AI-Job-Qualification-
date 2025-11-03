@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Job Platform - Local Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">AI Job Platform - Test Interface</h1>
+        
+        <!-- Job Creation Test -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test AI Form Generation</h2>
+            <form id="jobForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                    <input type="text" id="jobTitle" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                           placeholder="e.g., Senior React Developer" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Requirements</label>
+                    <textarea id="requirements" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                              rows="3" placeholder="e.g., 5+ years React, Node.js, TypeScript" required></textarea>
+                </div>
+                <button type="submit" id="createJobBtn" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    Generate AI Form
+                </button>
+            </form>
+            
+            <div id="jobResult" class="mt-6 hidden">
+                <h3 class="text-lg font-medium mb-2">Generated Form Fields:</h3>
+                <div id="formFields" class="bg-gray-50 p-4 rounded-md"></div>
+            </div>
+        </div>
+
+        <!-- Application Test -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test AI Candidate Analysis</h2>
+            <form id="applicationForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Job ID (from above)</label>
+                    <input type="text" id="jobId" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                           placeholder="Will be filled automatically">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Candidate Name</label>
+                    <input type="text" id="candidateName" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                           placeholder="John Doe" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="candidateEmail" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                           placeholder="john@example.com" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                    <textarea id="candidateSkills" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                              rows="3" placeholder="React, JavaScript, Node.js, 5 years experience" required></textarea>
+                </div>
+                <button type="submit" id="submitAppBtn" 
+                        class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                    Submit & Get AI Analysis
+                </button>
+            </form>
+            
+            <div id="analysisResult" class="mt-6 hidden">
+                <h3 class="text-lg font-medium mb-2">AI Analysis:</h3>
+                <div id="analysisDetails" class="bg-gray-50 p-4 rounded-md"></div>
+            </div>
+        </div>
+
+        <!-- Status Display -->
+        <div id="status" class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4 hidden">
+            <div id="statusText"></div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-4 hidden">
+            <div id="errorText"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://ai-job-qualification.onrender.com';
+        let currentJobId = null;
+
+        function showStatus(message) {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = message;
+            status.classList.remove('hidden');
+            document.getElementById('error').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            error.classList.remove('hidden');
+            document.getElementById('status').classList.add('hidden');
+        }
+
+        // Job Creation
+        document.getElementById('jobForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const jobTitle = document.getElementById('jobTitle').value;
+            const requirements = document.getElementById('requirements').value;
+            const btn = document.getElementById('createJobBtn');
+            
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
+            showStatus('Creating job with AI form generation...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/jobs/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ jobTitle, requirements })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentJobId = data.jobId;
+                    document.getElementById('jobId').value = currentJobId;
+                    
+                    const formFields = document.getElementById('formFields');
+                    formFields.innerHTML = data.formFields.map(field => 
+                        `<div class="mb-2">
+                            <strong>${field.label}</strong> (${field.type}) 
+                            ${field.required ? '<span class="text-red-500">*</span>' : ''}
+                        </div>`
+                    ).join('');
+                    
+                    document.getElementById('jobResult').classList.remove('hidden');
+                    showStatus(`✅ Job created successfully! Generated ${data.formFields.length} AI form fields.`);
+                } else {
+                    showError(`Failed to create job: ${data.error}`);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            } finally {
+                btn.textContent = 'Generate AI Form';
+                btn.disabled = false;
+            }
+        });
+
+        // Application Submission
+        document.getElementById('applicationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentJobId) {
+                showError('Please create a job first!');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('jobId', currentJobId);
+            formData.append('name', document.getElementById('candidateName').value);
+            formData.append('email', document.getElementById('candidateEmail').value);
+            formData.append('skills', document.getElementById('candidateSkills').value);
+            
+            const btn = document.getElementById('submitAppBtn');
+            btn.textContent = 'Analyzing...';
+            btn.disabled = true;
+            showStatus('Submitting application and running AI analysis...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/applications/submit`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const analysis = data.analysis;
+                    const analysisDetails = document.getElementById('analysisDetails');
+                    
+                    analysisDetails.innerHTML = `
+                        <div class="mb-4">
+                            <h4 class="font-semibold text-lg">Score: ${analysis.score}%</h4>
+                            <p class="text-gray-600">${analysis.summary}</p>
+                        </div>
+                        <div class="mb-4">
+                            <h5 class="font-medium text-green-700">Strengths:</h5>
+                            <ul class="list-disc list-inside text-sm">
+                                ${analysis.strengths.map(s => `<li>${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="mb-4">
+                            <h5 class="font-medium text-red-700">Concerns:</h5>
+                            <ul class="list-disc list-inside text-sm">
+                                ${analysis.concerns.map(c => `<li>${c}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div>
+                            <h5 class="font-medium">Recommendation:</h5>
+                            <p class="text-sm">${analysis.recommendation}</p>
+                        </div>
+                    `;
+                    
+                    document.getElementById('analysisResult').classList.remove('hidden');
+                    showStatus(`✅ Application analyzed! AI score: ${analysis.score}%`);
+                } else {
+                    showError(`Failed to submit application: ${data.error}`);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            } finally {
+                btn.textContent = 'Submit & Get AI Analysis';
+                btn.disabled = false;
+            }
+        });
+
+        // Test API connection on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                showStatus(`✅ Connected to API: ${data.message}`);
+            } catch (error) {
+                showError(`❌ Cannot connect to API: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
