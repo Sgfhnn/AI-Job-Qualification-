@@ -4,7 +4,7 @@ class GeminiService {
   constructor() {
     // Use environment variable first, fallback to hardcoded for production
     this.apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0'
-    this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+    this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
     
     // Debug API key
     if (!this.apiKey) {
