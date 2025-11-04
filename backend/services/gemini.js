@@ -209,178 +209,202 @@ Return ONLY JSON:
   }
 
   async makeRequest(prompt, formData = {}, resumeText = '') {
-    try {
-      console.log('Making AI analysis request...')
-      
-      if (!this.apiKey) {
-        throw new Error('GEMINI_API_KEY is not configured')
-      }
-
-      const response = await axios.post(
-        `${this.baseUrl}?key=${this.apiKey}`,
-        {
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.3,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 512,
-          },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_NONE"
-            },
-            {
-              category: "HARM_CATEGORY_HATE_SPEECH",
-              threshold: "BLOCK_NONE"
-            },
-            {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_NONE"
-            },
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_NONE"
-            }
-          ]
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
+    // Retry logic for rate limits
+    const maxRetries = 2
+    let lastError = null
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 3000) // 1s, 2s max
+          console.log(`⏳ Rate limit hit for analysis, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries + 1})`)
+          await new Promise(resolve => setTimeout(resolve, delay))
         }
-      )
-
-      console.log('AI Analysis Response Status:', response.status)
-      
-      // Detailed response validation
-      if (!response.data) {
-        console.error('No response.data')
-        throw new Error('No data in Gemini API response')
-      }
-      
-      if (!response.data.candidates) {
-        console.error('No candidates in response:', JSON.stringify(response.data).substring(0, 500))
-        throw new Error('No candidates in Gemini API response')
-      }
-      
-      if (!response.data.candidates[0]) {
-        console.error('No first candidate:', response.data.candidates)
-        throw new Error('Empty candidates array from Gemini API')
-      }
-      
-      if (!response.data.candidates[0].content) {
-        console.error('No content in candidate:', response.data.candidates[0])
-        throw new Error('No content in Gemini API candidate')
-      }
-      
-      if (!response.data.candidates[0].content.parts) {
-        console.error('No parts in content:', response.data.candidates[0].content)
-        throw new Error('No parts in Gemini API content')
-      }
-      
-      if (!response.data.candidates[0].content.parts[0]) {
-        console.error('No first part:', response.data.candidates[0].content.parts)
-        throw new Error('Empty parts array from Gemini API')
-      }
-
-      const generatedText = response.data.candidates[0].content.parts[0].text
-      
-      if (!generatedText) {
-        console.error('No text in part:', response.data.candidates[0].content.parts[0])
-        throw new Error('No text in Gemini API response')
-      }
-      console.log('Generated analysis text:', generatedText.substring(0, 200) + '...')
-      
-      // Remove markdown code blocks
-      let cleanText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      
-      // Extract JSON from the response with better regex
-      const jsonMatch = cleanText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const analysis = JSON.parse(jsonMatch[0])
-        console.log('Successfully parsed analysis with score:', analysis.score)
         
-        // Ensure score is within valid range
-        if (analysis.score < 0) analysis.score = 0
-        if (analysis.score > 100) analysis.score = 100
+        console.log('Making AI analysis request...')
         
-        return analysis
-      } else {
-        console.error('Could not extract JSON from analysis response:', cleanText)
-        throw new Error('Could not extract JSON from Gemini response')
+        if (!this.apiKey) {
+          throw new Error('GEMINI_API_KEY is not configured')
+        }
+
+        const response = await axios.post(
+          `${this.baseUrl}?key=${this.apiKey}`,
+          {
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 512,
+            },
+            safetySettings: [
+              {
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_NONE"
+              },
+              {
+                category: "HARM_CATEGORY_HATE_SPEECH",
+                threshold: "BLOCK_NONE"
+              },
+              {
+                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold: "BLOCK_NONE"
+              },
+              {
+                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold: "BLOCK_NONE"
+              }
+            ]
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000
+          }
+        )
+
+        console.log('AI Analysis Response Status:', response.status)
+        
+        // Detailed response validation
+        if (!response.data) {
+          console.error('No response.data')
+          throw new Error('No data in Gemini API response')
+        }
+        
+        if (!response.data.candidates) {
+          console.error('No candidates in response:', JSON.stringify(response.data).substring(0, 500))
+          throw new Error('No candidates in Gemini API response')
+        }
+        
+        if (!response.data.candidates[0]) {
+          console.error('No first candidate:', response.data.candidates)
+          throw new Error('Empty candidates array from Gemini API')
+        }
+        
+        if (!response.data.candidates[0].content) {
+          console.error('No content in candidate:', response.data.candidates[0])
+          throw new Error('No content in Gemini API candidate')
+        }
+        
+        if (!response.data.candidates[0].content.parts) {
+          console.error('No parts in content:', response.data.candidates[0].content)
+          throw new Error('No parts in Gemini API content')
+        }
+        
+        if (!response.data.candidates[0].content.parts[0]) {
+          console.error('No first part:', response.data.candidates[0].content.parts)
+          throw new Error('Empty parts array from Gemini API')
+        }
+
+        const generatedText = response.data.candidates[0].content.parts[0].text
+        
+        if (!generatedText) {
+          console.error('No text in part:', response.data.candidates[0].content.parts[0])
+          throw new Error('No text in Gemini API response')
+        }
+        console.log('Generated analysis text:', generatedText.substring(0, 200) + '...')
+        
+        // Remove markdown code blocks
+        let cleanText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        
+        // Extract JSON from the response with better regex
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const analysis = JSON.parse(jsonMatch[0])
+          console.log('✅ Successfully parsed analysis with score:', analysis.score)
+          
+          // Ensure score is within valid range
+          if (analysis.score < 0) analysis.score = 0
+          if (analysis.score > 100) analysis.score = 100
+          
+          return analysis
+        } else {
+          console.error('Could not extract JSON from analysis response:', cleanText)
+          throw new Error('Could not extract JSON from Gemini response')
+        }
+      } catch (error) {
+        lastError = error
+        const isRateLimit = error.response?.data?.error?.code === 429
+        
+        if (isRateLimit && attempt < maxRetries) {
+          console.log('⚠️ Rate limit (429) for analysis, will retry...')
+          continue // Retry
+        }
+        
+        // Log error details
+        console.error('❌ Gemini API Error:', error.response?.data || error.message)
+        console.error('❌ Error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          apiKey: this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET'
+        })
+        
+        // Check if it's an API key issue
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.error('🔑 API Key issue - The API key is invalid or expired')
+          console.error('🔑 Current key starts with:', this.apiKey?.substring(0, 20))
+        }
+        
+        // If not rate limit or out of retries, use fallback
+        break
       }
-    } catch (error) {
-      console.error('❌ Gemini API Error:', error.response?.data || error.message)
-      console.error('❌ Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        apiKey: this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET'
-      })
-      
-      // Check if it's an API key issue
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error('🔑 API Key issue - The API key is invalid or expired')
-        console.error('🔑 Current key starts with:', this.apiKey?.substring(0, 20))
-      }
-      
-      // Generate realistic fallback analysis based on actual form data
-      const candidateName = formData.name || 'Candidate'
-      const candidateEmail = formData.email || 'No email provided'
-      
-      // Analyze form completeness and generate realistic score
-      const formFields = Object.keys(formData)
-      const completedFields = formFields.filter(key => formData[key] && formData[key] !== '').length
-      const completionRate = completedFields / formFields.length
-      
-      // Generate score based on completion rate and resume presence
-      let baseScore = Math.floor(completionRate * 40) + 30 // 30-70 base
-      if (resumeText && resumeText.length > 100) baseScore += 15 // Resume bonus
-      if (formData.skills || formData.programmingLanguages || formData.experience) baseScore += 10 // Skills bonus
-      
-      // Add some randomness to avoid identical scores
-      const finalScore = Math.min(95, baseScore + Math.floor(Math.random() * 10))
-      
-      // Generate personalized feedback based on actual data
-      const strengths = []
-      const concerns = []
-      
-      if (resumeText && resumeText.length > 100) {
-        strengths.push('Provided detailed resume with substantial content')
-      }
-      if (formData.skills || formData.programmingLanguages) {
-        strengths.push('Clearly articulated relevant technical skills')
-      }
-      if (formData.yearsExperience || formData.yearsOfCoding || formData.salesExperience) {
-        strengths.push('Has relevant professional experience in the field')
-      }
-      if (completionRate > 0.8) {
-        strengths.push('Completed application thoroughly and professionally')
-      }
-      
-      if (completionRate < 0.6) {
-        concerns.push('Incomplete application - several fields left blank')
-      }
-      if (!resumeText || resumeText.length < 100) {
-        concerns.push('Limited resume content provided for evaluation')
-      }
-      concerns.push('AI analysis temporarily unavailable - manual review required')
-      
-      return {
-        score: finalScore,
-        explanation: `${candidateName} scored ${finalScore}% based on application completeness (${Math.round(completionRate * 100)}% fields completed), resume quality, and demonstrated relevant experience. AI analysis service temporarily unavailable, but initial screening shows ${finalScore >= 70 ? 'promising' : 'moderate'} potential for this role.`,
-        strengths: strengths.length > 0 ? strengths : ['Submitted application for consideration', 'Shows interest in the position'],
-        concerns: concerns,
-        recommendation: finalScore >= 80 ? 'Recommend for interview - strong application materials' : 
-                       finalScore >= 60 ? 'Consider for phone screening - decent fit with some gaps' : 
-                       'Manual review needed - application shows basic interest but limited evidence of fit'
-      }
+    }
+    
+    // Generate realistic fallback analysis based on actual form data
+    const candidateName = formData.name || 'Candidate'
+    const candidateEmail = formData.email || 'No email provided'
+    
+    // Analyze form completeness and generate realistic score
+    const formFields = Object.keys(formData)
+    const completedFields = formFields.filter(key => formData[key] && formData[key] !== '').length
+    const completionRate = completedFields / formFields.length
+    
+    // Generate score based on completion rate and resume presence
+    let baseScore = Math.floor(completionRate * 40) + 30 // 30-70 base
+    if (resumeText && resumeText.length > 100) baseScore += 15 // Resume bonus
+    if (formData.skills || formData.programmingLanguages || formData.experience) baseScore += 10 // Skills bonus
+    
+    // Add some randomness to avoid identical scores
+    const finalScore = Math.min(95, baseScore + Math.floor(Math.random() * 10))
+    
+    // Generate personalized feedback based on actual data
+    const strengths = []
+    const concerns = []
+    
+    if (resumeText && resumeText.length > 100) {
+      strengths.push('Provided detailed resume with substantial content')
+    }
+    if (formData.skills || formData.programmingLanguages) {
+      strengths.push('Clearly articulated relevant technical skills')
+    }
+    if (formData.yearsExperience || formData.yearsOfCoding || formData.salesExperience) {
+      strengths.push('Has relevant professional experience in the field')
+    }
+    if (completionRate > 0.8) {
+      strengths.push('Completed application thoroughly and professionally')
+    }
+    
+    if (completionRate < 0.6) {
+      concerns.push('Incomplete application - several fields left blank')
+    }
+    if (!resumeText || resumeText.length < 100) {
+      concerns.push('Limited resume content provided for evaluation')
+    }
+    concerns.push('AI analysis temporarily unavailable - manual review required')
+    
+    return {
+      score: finalScore,
+      explanation: `${candidateName} scored ${finalScore}% based on application completeness (${Math.round(completionRate * 100)}% fields completed), resume quality, and demonstrated relevant experience. AI analysis service temporarily unavailable, but initial screening shows ${finalScore >= 70 ? 'promising' : 'moderate'} potential for this role.`,
+      strengths: strengths.length > 0 ? strengths : ['Submitted application for consideration', 'Shows interest in the position'],
+      concerns: concerns,
+      recommendation: finalScore >= 80 ? 'Recommend for interview - strong application materials' : 
+                     finalScore >= 60 ? 'Consider for phone screening - decent fit with some gaps' : 
+                     'Manual review needed - application shows basic interest but limited evidence of fit'
     }
   }
 }
