@@ -15,12 +15,15 @@ class GeminiService {
   }
 
   async generateFormFields(jobTitle, requirements) {
-    const prompt = `Create 4 fields for: ${jobTitle}
+    const prompt = `Create 6-8 dynamic fields for: ${jobTitle}
 
-Return JSON array with name, email, plus 2 job-specific fields:
+Requirements: ${requirements}
+
+Return JSON array starting with name and email, then add 4-6 job-specific fields:
 [{"name":"name","type":"text","label":"Full Name","required":true},{"name":"email","type":"email","label":"Email","required":true}]
 
-Keep it SHORT. No spaces in JSON. Max 2 options for select fields.`
+Use types: text, email, number, select, textarea
+Make fields highly relevant to the job. Keep labels concise. Max 3 options for select fields.`
 
     // Retry logic for rate limits
     const maxRetries = 2
@@ -53,7 +56,7 @@ Keep it SHORT. No spaces in JSON. Max 2 options for select fields.`
               temperature: 0.7,
               topK: 40,
               topP: 0.95,
-              maxOutputTokens: 512,
+              maxOutputTokens: 1024,
             }
           },
           {
