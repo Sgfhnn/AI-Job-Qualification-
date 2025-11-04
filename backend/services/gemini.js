@@ -22,74 +22,98 @@ Return JSON array with name, email, plus 2 job-specific fields:
 
 Keep it SHORT. No spaces in JSON. Max 2 options for select fields.`
 
-    try {
-      console.log('Generating form fields for:', jobTitle)
-      console.log('Making request to:', this.baseUrl)
-      
-      if (!this.apiKey) {
-        throw new Error('GEMINI_API_KEY is not configured')
-      }
+    // Retry logic for rate limits
+    const maxRetries = 2
+    let lastError = null
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 3000) // 1s, 2s max
+          console.log(`⏳ Rate limit hit, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries + 1})`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+        
+        console.log('Generating form fields for:', jobTitle)
+        console.log('Making request to:', this.baseUrl)
+        
+        if (!this.apiKey) {
+          throw new Error('GEMINI_API_KEY is not configured')
+        }
 
-      const response = await axios.post(
-        `${this.baseUrl}?key=${this.apiKey}`,
-        {
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 512,
-          }
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
+        const response = await axios.post(
+          `${this.baseUrl}?key=${this.apiKey}`,
+          {
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 512,
+            }
           },
-          timeout: 30000
-        }
-      )
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000
+          }
+        )
 
-      console.log('Gemini API Response Status:', response.status)
-      
-      if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
-        throw new Error('Invalid response structure from Gemini API')
-      }
-
-      const generatedText = response.data.candidates[0].content.parts[0].text
-      console.log('Generated text:', generatedText.substring(0, 200) + '...')
-      
-      // Remove markdown code blocks
-      let cleanText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      
-      // Extract JSON from the response with better regex
-      const jsonMatch = cleanText.match(/\[[\s\S]*\]/)
-      if (jsonMatch) {
-        try {
-          const parsedFields = JSON.parse(jsonMatch[0])
-          console.log('Successfully parsed form fields:', parsedFields.length, 'fields')
-          return parsedFields
-        } catch (parseError) {
-          console.error('JSON Parse Error:', parseError.message)
-          console.error('Attempted to parse:', jsonMatch[0].substring(0, 500))
-          throw parseError
+        console.log('Gemini API Response Status:', response.status)
+        
+        if (!response.data || !response.data.candidates || !response.data.candidates[0]) {
+          throw new Error('Invalid response structure from Gemini API')
         }
-      } else {
-        console.error('Could not extract JSON from response:', cleanText.substring(0, 500))
-        throw new Error('Could not extract JSON from Gemini response')
+
+        const generatedText = response.data.candidates[0].content.parts[0].text
+        console.log('Generated text:', generatedText.substring(0, 200) + '...')
+        
+        // Remove markdown code blocks
+        let cleanText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        
+        // Extract JSON from the response with better regex
+        const jsonMatch = cleanText.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          try {
+            const parsedFields = JSON.parse(jsonMatch[0])
+            console.log('✅ Successfully parsed form fields:', parsedFields.length, 'fields')
+            return parsedFields
+          } catch (parseError) {
+            console.error('JSON Parse Error:', parseError.message)
+            console.error('Attempted to parse:', jsonMatch[0].substring(0, 500))
+            throw parseError
+          }
+        } else {
+          console.error('Could not extract JSON from response:', cleanText.substring(0, 500))
+          throw new Error('Could not extract JSON from Gemini response')
+        }
+      } catch (error) {
+        lastError = error
+        const isRateLimit = error.response?.data?.error?.code === 429
+        
+        if (isRateLimit && attempt < maxRetries) {
+          console.log('⚠️ Rate limit (429), will retry...')
+          continue // Retry
+        }
+        
+        // Log error details
+        console.error('Error generating form fields:', error.response?.data || error.message)
+        
+        // If not rate limit or out of retries, use fallback
+        break
       }
-    } catch (error) {
-      console.error('Error generating form fields:', error.response?.data || error.message)
-      
-      // Generate job-specific fallback fields based on job title and requirements
-      const fallbackFields = this.generateJobSpecificFallback(jobTitle, requirements)
-      
-      console.log('Using fallback form fields:', fallbackFields.length, 'fields')
-      return fallbackFields
     }
+    
+    // Generate job-specific fallback fields based on job title and requirements
+    const fallbackFields = this.generateJobSpecificFallback(jobTitle, requirements)
+    
+    console.log('Using fallback form fields:', fallbackFields.length, 'fields')
+    return fallbackFields
   }
 
   generateJobSpecificFallback(jobTitle, requirements) {
