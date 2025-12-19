@@ -163,7 +163,14 @@ async function analyzeCandidate(jobRequirements, formData, resumeText = '') {
       throw new Error('Invalid analysis result from Gemini Service')
     }
 
-    console.log(`✅ REAL AI Analysis SUCCESS - Score: ${analysis.score}%`)
+    // Check if it's a fallback (contains "temporarily unavailable")
+    const isFallback = analysis.explanation?.includes('temporarily unavailable')
+
+    if (isFallback) {
+      console.log(`⚠️ AI Analysis used FALLBACK - Score: ${analysis.score}%`)
+    } else {
+      console.log(`✅ REAL AI Analysis SUCCESS - Score: ${analysis.score}%`)
+    }
 
     // Ensure consistent format for frontend
     return {
@@ -175,10 +182,10 @@ async function analyzeCandidate(jobRequirements, formData, resumeText = '') {
     }
 
   } catch (error) {
-    console.error('❌ Gemini Service FAILED:', error.message)
-    console.log('🔄 Falling back to intelligent local analysis...')
+    console.error('❌ Gemini Service CRITICAL FAILURE:', error.message)
+    console.log('🔄 Falling back to local emergency analysis...')
 
-    // Intelligent fallback if API fails
+    // Emergency fallback if even the service fallback fails
     const exp = formData.years_experience || formData.experience || '0'
     const expYears = parseInt(exp) || 0
     const score = Math.min(90, 60 + (expYears * 5))
@@ -186,9 +193,9 @@ async function analyzeCandidate(jobRequirements, formData, resumeText = '') {
     return {
       score,
       strengths: [`${expYears} years of relevant experience`, 'Completed all required form fields'],
-      concerns: ['AI service temporarily unavailable - manual verification recommended'],
+      concerns: ['AI service critical failure - manual verification required'],
       recommendation: score >= 75 ? 'Strongly recommend for interview' : 'Consider for initial screening',
-      summary: `Local analysis completed. Candidate shows ${expYears} years of experience.`
+      summary: `Emergency local analysis. Candidate shows ${expYears} years of experience.`
     }
   }
 }

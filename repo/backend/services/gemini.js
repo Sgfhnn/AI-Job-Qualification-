@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 class GeminiService {
   constructor() {
-    this.version = '1.2.0-sdk'
+    this.version = '1.2.1-sdk'
     this.apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBvF0N3l7l9PbCjySbc0onW9WSZ6yjIzEE'
 
     if (!this.apiKey) {
@@ -97,6 +97,7 @@ Return ONLY JSON:
         return parsed
       }
 
+      console.error(`[Gemini v${this.version}] Failed to extract JSON from: "${text.substring(0, 1000)}"`)
       throw new Error('Could not parse JSON from analysis response')
     } catch (error) {
       console.error(`[Gemini v${this.version}] Analysis Error:`, error.message)
@@ -109,13 +110,15 @@ Return ONLY JSON:
     const startIdx = text.indexOf(startChar)
     const endIdx = text.lastIndexOf(endChar)
 
+    console.log(`[Gemini v${this.version}] extractJson: searching for ${startChar}...${endChar}. Found at indices: ${startIdx}, ${endIdx}`)
+
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
       const jsonStr = text.substring(startIdx, endIdx + 1)
       try {
         return JSON.parse(jsonStr)
       } catch (e) {
         console.error(`[Gemini v${this.version}] JSON Parse Error:`, e.message)
-        console.error(`[Gemini v${this.version}] Problematic JSON:`, jsonStr.substring(0, 200) + '...')
+        console.error(`[Gemini v${this.version}] Problematic JSON string:`, jsonStr)
         return null
       }
     }
@@ -144,13 +147,11 @@ Return ONLY JSON:
   }
 
   generateJobSpecificFallback(jobTitle, requirements) {
-    // Simplified fallback for brevity, keeping the logic from before
     const baseFields = [
       { "name": "name", "type": "text", "label": "Full Name", "required": true },
       { "name": "email", "type": "email", "label": "Email Address", "required": true }
     ]
 
-    // Add some generic fields
     return baseFields.concat([
       { "name": "yearsExperience", "type": "select", "label": "Years of Experience", "required": true, "options": ["0-1", "1-3", "3-5", "5+"] },
       { "name": "skills", "type": "textarea", "label": "Key Skills", "required": true },
