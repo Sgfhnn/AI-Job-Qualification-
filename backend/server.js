@@ -14,42 +14,46 @@ let applications = []
 const geminiService = require('./services/gemini')
 
 async function analyzeCandidate(jobRequirements, formData, resumeText = '') {
-  console.log(`🔍 Using WORKING Gemini service for analysis...`)
-  
+  console.log(`🔍 Starting AI Analysis for candidate...`)
+  console.log(`📋 Job Requirements length: ${jobRequirements?.length || 0}`)
+  console.log(`📊 Form Data keys: ${Object.keys(formData || {}).join(', ')}`)
+
   try {
-    // Use the working geminiService that we know works from the test
+    // IMPORTANT: geminiService.analyzeCandidate expects (jobRequirements, resumeText, formData)
+    // Our wrapper receives (jobRequirements, formData, resumeText)
+    console.log('📡 Calling Gemini Service...')
     const analysis = await geminiService.analyzeCandidate(jobRequirements, resumeText, formData)
-    
+
+    if (!analysis || typeof analysis.score === 'undefined') {
+      throw new Error('Invalid analysis result from Gemini Service')
+    }
+
     console.log(`✅ REAL AI Analysis SUCCESS - Score: ${analysis.score}%`)
-    console.log(`📋 Analysis: ${analysis.explanation?.substring(0, 100)}...`)
-    
-    // Convert the geminiService format to the expected format
+
+    // Ensure consistent format for frontend
     return {
       score: analysis.score,
       strengths: analysis.strengths || ['Completed comprehensive application'],
-      concerns: analysis.concerns || ['Would benefit from technical interview'],
+      concerns: analysis.concerns || [],
       recommendation: analysis.recommendation || 'Consider for interview based on qualifications',
-      summary: analysis.explanation || 'Candidate analysis completed'
+      summary: analysis.explanation || 'Candidate analysis completed successfully'
     }
-    
+
   } catch (error) {
     console.error('❌ Gemini Service FAILED:', error.message)
-    console.error('🔧 Using simple fallback...')
-    
-    // Simple fallback
-    const candidateData = formData || {}
-    const experience = candidateData.years_experience || candidateData.experience || '0'
-    const expYears = parseInt(experience) || 0
-    
-    let score = 50 + (expYears * 5) // Simple calculation
-    score = Math.max(40, Math.min(score, 85))
-    
+    console.log('🔄 Falling back to intelligent local analysis...')
+
+    // Intelligent fallback if API fails
+    const exp = formData.years_experience || formData.experience || '0'
+    const expYears = parseInt(exp) || 0
+    const score = Math.min(90, 60 + (expYears * 5))
+
     return {
       score,
-      strengths: [`${expYears} years of experience`, 'Completed application'],
-      concerns: ['Needs further evaluation'],
-      recommendation: 'Consider for interview',
-      summary: 'Basic candidate evaluation'
+      strengths: [`${expYears} years of relevant experience`, 'Completed all required form fields'],
+      concerns: ['AI service temporarily unavailable - manual verification recommended'],
+      recommendation: score >= 75 ? 'Strongly recommend for interview' : 'Consider for initial screening',
+      summary: `Local analysis completed. Candidate shows ${expYears} years of experience.`
     }
   }
 }
@@ -69,7 +73,7 @@ app.use('*', (req, res, next) => {
   res.header('Access-Control-Allow-Methods', '*')
   res.header('Access-Control-Allow-Headers', '*')
   res.header('Access-Control-Max-Age', '3600')
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
@@ -97,21 +101,21 @@ const upload = multer({ storage: storage })
 // AI Form Generation Function using working service
 async function generateJobForm(jobTitle, requirements) {
   console.log(`🤖 Using WORKING Gemini service for form generation: ${jobTitle}`)
-  
+
   try {
     // Use the working geminiService
     const formFields = await geminiService.generateFormFields(jobTitle, requirements)
     console.log(`✅ Generated ${formFields.length} AI form fields`)
     return formFields
-    
+
   } catch (error) {
     console.error('❌ Gemini Form Generation Error:', error.message)
     console.log('🔄 Using enhanced fallback form...')
-    
+
     // Enhanced fallback based on job requirements
     const isEngineer = jobTitle.toLowerCase().includes('engineer') || jobTitle.toLowerCase().includes('developer')
     const isML = jobTitle.toLowerCase().includes('machine learning') || jobTitle.toLowerCase().includes('data')
-    
+
     let fallbackFields = [
       { name: 'name', type: 'text', label: 'Full Name', required: true },
       { name: 'email', type: 'email', label: 'Email Address', required: true },
@@ -124,7 +128,7 @@ async function generateJobForm(jobTitle, requirements) {
       { name: 'availability', type: 'select', label: 'Availability', required: true, options: ['Immediately', '2 weeks', '1 month'] },
       { name: 'salary_range', type: 'text', label: 'Expected Salary Range', required: false }
     ]
-    
+
     if (isML) {
       fallbackFields.push(
         { name: 'ml_frameworks', type: 'textarea', label: 'Machine Learning Frameworks Experience', required: true },
@@ -141,7 +145,7 @@ async function generateJobForm(jobTitle, requirements) {
         { name: 'achievements', type: 'textarea', label: 'Key Achievements', required: true }
       )
     }
-    
+
     console.log(`✅ Using ${fallbackFields.length} enhanced fallback fields`)
     return fallbackFields
   }
@@ -151,17 +155,17 @@ async function generateJobForm(jobTitle, requirements) {
 app.post('/api/jobs/create', async (req, res) => {
   try {
     const { jobTitle, requirements } = req.body
-    
+
     if (!jobTitle || !requirements) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Job title and requirements are required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Job title and requirements are required'
       })
     }
 
     const jobId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9)
     const formFields = await generateJobForm(jobTitle, requirements)
-    
+
     const job = {
       id: jobId,
       title: jobTitle,
@@ -169,9 +173,9 @@ app.post('/api/jobs/create', async (req, res) => {
       form_fields: formFields,
       created_at: new Date().toISOString()
     }
-    
+
     jobs.push(job)
-    
+
     res.json({
       success: true,
       jobId,
@@ -179,9 +183,9 @@ app.post('/api/jobs/create', async (req, res) => {
     })
   } catch (error) {
     console.error('Error creating job:', error)
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to create job' 
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create job'
     })
   }
 })
@@ -202,14 +206,14 @@ app.get('/api/jobs', (req, res) => {
 app.get('/api/jobs/:jobId', (req, res) => {
   const { jobId } = req.params
   const job = jobs.find(j => j.id === jobId)
-  
+
   if (!job) {
-    return res.status(404).json({ 
-      success: false, 
-      error: 'Job not found' 
+    return res.status(404).json({
+      success: false,
+      error: 'Job not found'
     })
   }
-  
+
   res.json({
     success: true,
     job
@@ -220,14 +224,14 @@ app.get('/api/jobs/:jobId', (req, res) => {
 app.post('/api/applications/submit', upload.single('resume'), async (req, res) => {
   try {
     console.log('📝 Application submission received')
-    
+
     const { jobId } = req.body
     const job = jobs.find(j => j.id === jobId)
-    
+
     if (!job) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Job not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found'
       })
     }
 
@@ -249,8 +253,10 @@ app.post('/api/applications/submit', upload.single('resume'), async (req, res) =
       resumeText = `Resume file: ${req.file.originalname}`
     }
 
+    console.log('🔍 Starting AI analysis process...')
     const analysis = await analyzeCandidate(job.requirements, formData, resumeText)
-    
+    console.log('✅ AI analysis process finished')
+
     const application = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9),
       jobId,
@@ -259,9 +265,9 @@ app.post('/api/applications/submit', upload.single('resume'), async (req, res) =
       analysis,
       submittedAt: new Date().toISOString()
     }
-    
+
     applications.push(application)
-    
+
     res.json({
       success: true,
       applicationId: application.id,
@@ -269,9 +275,9 @@ app.post('/api/applications/submit', upload.single('resume'), async (req, res) =
     })
   } catch (error) {
     console.error('Error submitting application:', error)
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to submit application' 
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit application'
     })
   }
 })
@@ -280,7 +286,7 @@ app.post('/api/applications/submit', upload.single('resume'), async (req, res) =
 app.get('/api/jobs/:jobId/applicants', (req, res) => {
   const { jobId } = req.params
   const jobApplications = applications.filter(app => app.jobId === jobId)
-  
+
   res.json({
     success: true,
     applicants: jobApplications
@@ -289,8 +295,8 @@ app.get('/api/jobs/:jobId/applicants', (req, res) => {
 
 // Root route
 app.get('/', (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'AI Job Platform API is running',
     endpoints: {
       health: '/health',
@@ -327,11 +333,11 @@ app.get('/api/debug/env', (req, res) => {
 app.get('/api/resumes/:filename', (req, res) => {
   const filename = req.params.filename
   const filePath = path.join(uploadsDir, filename)
-  
+
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ success: false, error: 'File not found' })
   }
-  
+
   res.sendFile(filePath)
 })
 
