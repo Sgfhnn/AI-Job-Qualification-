@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 class GeminiService {
     constructor() {
-        this.version = '1.2.4-sdk'
+        this.version = '1.2.5-sdk'
         this.apiKey = process.env.GEMINI_API_KEY
 
         if (!this.apiKey) {
