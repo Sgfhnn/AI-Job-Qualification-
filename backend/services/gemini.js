@@ -23,7 +23,8 @@ Return JSON array starting with name and email, then add 4-6 job-specific fields
 [{"name":"name","type":"text","label":"Full Name","required":true},{"name":"email","type":"email","label":"Email","required":true}]
 
 Use types: text, email, number, select, textarea
-Make fields highly relevant to the job. Keep labels concise. Max 3 options for select fields.`
+Make fields highly relevant to the job. Keep labels concise. 
+IMPORTANT: For "select" fields, "options" MUST be an array of strings, NOT objects. Max 3 options.`
 
     // Retry logic for rate limits
     const maxRetries = 2

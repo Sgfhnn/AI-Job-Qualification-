@@ -40,9 +40,9 @@ export default function ApplyPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}`)
       const data = await response.json()
-      
+
       console.log('API Response:', data) // Debug log
-      
+
       if (data.success && data.job) {
         // Handle both old and new data structures
         const jobData = {
@@ -51,9 +51,9 @@ export default function ApplyPage() {
           requirements: data.job.requirements,
           formFields: data.job.formFields || data.job.form_fields || []
         }
-        
+
         setJob(jobData)
-        
+
         // Initialize form data only if formFields exists and is an array
         const initialData: Record<string, any> = {}
         if (jobData.formFields && Array.isArray(jobData.formFields)) {
@@ -84,19 +84,19 @@ export default function ApplyPage() {
       const file = e.target.files[0]
       const maxSize = 10 * 1024 * 1024 // 10MB
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-      
+
       if (file.size > maxSize) {
         setUploadError('File size must be less than 10MB')
         setResumeUploaded(false)
         return
       }
-      
+
       if (!allowedTypes.includes(file.type)) {
         setUploadError('Only PDF, DOC, and DOCX files are allowed')
         setResumeUploaded(false)
         return
       }
-      
+
       setResume(file)
       setResumeUploaded(true)
       setUploadError(null)
@@ -121,7 +121,7 @@ export default function ApplyPage() {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         setSubmitted(true)
       } else {
@@ -150,7 +150,7 @@ export default function ApplyPage() {
             required={field.required}
           />
         )
-      
+
       case 'textarea':
         return (
           <textarea
@@ -162,7 +162,7 @@ export default function ApplyPage() {
             required={field.required}
           />
         )
-      
+
       case 'select':
         return (
           <select
@@ -172,12 +172,18 @@ export default function ApplyPage() {
             required={field.required}
           >
             <option value="">Select an option</option>
-            {field.options?.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
+            {field.options?.map((option: any, index: number) => {
+              const label = typeof option === 'object' ? (option.label || option.value || JSON.stringify(option)) : option;
+              const value = typeof option === 'object' ? (option.value || option.label || JSON.stringify(option)) : option;
+              return (
+                <option key={`${field.name}-opt-${index}`} value={value}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
         )
-      
+
       case 'checkbox':
         return (
           <input
@@ -187,7 +193,7 @@ export default function ApplyPage() {
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
         )
-      
+
       default:
         return null
     }
@@ -252,7 +258,7 @@ export default function ApplyPage() {
           {/* Application Form */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Application Form</h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Resume Upload */}
               <div>
