@@ -2,7 +2,11 @@ const axios = require('axios');
 require('dotenv').config();
 
 async function listModels() {
-  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBvF0N3l7l9PbCjySbc0onW9WSZ6yjIzEE';
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error('❌ GEMINI_API_KEY not found in environment variables');
+    return;
+  }
   console.log('Using API Key:', apiKey.substring(0, 10) + '...');
 
   try {

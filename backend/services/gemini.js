@@ -3,7 +3,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 class GeminiService {
   constructor() {
     this.version = '1.2.1-sdk'
-    this.apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBvF0N3l7l9PbCjySbc0onW9WSZ6yjIzEE'
+    this.apiKey = process.env.GEMINI_API_KEY
 
     if (!this.apiKey) {
       console.error(`[Gemini v${this.version}] API Key missing!`)
