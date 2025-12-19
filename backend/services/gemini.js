@@ -56,7 +56,7 @@ Make fields highly relevant to the job. Keep labels concise. Max 3 options for s
               temperature: 0.7,
               topK: 40,
               topP: 0.95,
-              maxOutputTokens: 1024,
+              maxOutputTokens: 2048,
             }
           },
           {
@@ -74,26 +74,31 @@ Make fields highly relevant to the job. Keep labels concise. Max 3 options for s
         }
 
         const generatedText = response.data.candidates[0].content.parts[0].text
-        console.log('Generated text:', generatedText.substring(0, 200) + '...')
+        console.log('Generated text length:', generatedText.length)
+        console.log('Generated text (start):', generatedText.substring(0, 100) + '...')
 
-        // Remove markdown code blocks
-        let cleanText = generatedText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+        // Robust JSON extraction
+        let cleanText = generatedText.trim()
 
-        // Extract JSON from the response with better regex
-        const jsonMatch = cleanText.match(/\[[\s\S]*\]/)
-        if (jsonMatch) {
+        // Find the first [ and last ]
+        const startIdx = cleanText.indexOf('[')
+        const endIdx = cleanText.lastIndexOf(']')
+
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          const jsonStr = cleanText.substring(startIdx, endIdx + 1)
           try {
-            const parsedFields = JSON.parse(jsonMatch[0])
+            const parsedFields = JSON.parse(jsonStr)
             console.log('✅ Successfully parsed form fields:', parsedFields.length, 'fields')
             return parsedFields
           } catch (parseError) {
             console.error('JSON Parse Error:', parseError.message)
-            console.error('Attempted to parse:', jsonMatch[0].substring(0, 500))
+            console.error('Attempted to parse:', jsonStr.substring(0, 500))
             throw parseError
           }
         } else {
-          console.error('Could not extract JSON from response:', cleanText.substring(0, 500))
-          throw new Error('Could not extract JSON from Gemini response')
+          console.error('Could not find JSON array in response. Text length:', cleanText.length)
+          console.error('Response start:', cleanText.substring(0, 200))
+          throw new Error('Could not extract JSON array from Gemini response')
         }
       } catch (error) {
         lastError = error
@@ -239,7 +244,7 @@ Return ONLY JSON:
               temperature: 0.3,
               topK: 40,
               topP: 0.95,
-              maxOutputTokens: 512,
+              maxOutputTokens: 2048,
             },
             safetySettings: [
               {
@@ -307,25 +312,36 @@ Return ONLY JSON:
           console.error('No text in part:', response.data.candidates[0].content.parts[0])
           throw new Error('No text in Gemini API response')
         }
-        console.log('Generated analysis text:', generatedText.substring(0, 200) + '...')
+        console.log('Generated analysis text length:', generatedText.length)
+        console.log('Generated analysis text (start):', generatedText.substring(0, 100) + '...')
 
-        // Remove markdown code blocks
-        let cleanText = generatedText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+        // Robust JSON extraction
+        let cleanText = generatedText.trim()
 
-        // Extract JSON from the response with better regex
-        const jsonMatch = cleanText.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          const analysis = JSON.parse(jsonMatch[0])
-          console.log('✅ Successfully parsed analysis with score:', analysis.score)
+        // Find the first { and last }
+        const startIdx = cleanText.indexOf('{')
+        const endIdx = cleanText.lastIndexOf('}')
 
-          // Ensure score is within valid range
-          if (analysis.score < 0) analysis.score = 0
-          if (analysis.score > 100) analysis.score = 100
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          const jsonStr = cleanText.substring(startIdx, endIdx + 1)
+          try {
+            const analysis = JSON.parse(jsonStr)
+            console.log('✅ Successfully parsed analysis with score:', analysis.score)
 
-          return analysis
+            // Ensure score is within valid range
+            if (analysis.score < 0) analysis.score = 0
+            if (analysis.score > 100) analysis.score = 100
+
+            return analysis
+          } catch (parseError) {
+            console.error('JSON Parse Error:', parseError.message)
+            console.error('Attempted to parse:', jsonStr.substring(0, 500))
+            throw parseError
+          }
         } else {
-          console.error('Could not extract JSON from analysis response:', cleanText)
-          throw new Error('Could not extract JSON from Gemini response')
+          console.error('Could not find JSON object in analysis response. Text length:', cleanText.length)
+          console.error('Response start:', cleanText.substring(0, 200))
+          throw new Error('Could not extract JSON object from Gemini response')
         }
       } catch (error) {
         lastError = error
