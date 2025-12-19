@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 class GeminiService {
     constructor() {
-        this.version = '1.2.3-sdk'
+        this.version = '1.2.4-sdk'
         this.apiKey = process.env.GEMINI_API_KEY
 
         if (!this.apiKey) {
@@ -12,8 +12,8 @@ class GeminiService {
         }
 
         this.genAI = new GoogleGenerativeAI(this.apiKey)
-        // Use gemini-1.5-flash for maximum stability with JSON mode
-        this.modelName = 'gemini-1.5-flash'
+        // Using gemini-2.5-flash as requested
+        this.modelName = 'gemini-2.5-flash'
     }
 
     async generateFormFields(jobTitle, requirements) {
