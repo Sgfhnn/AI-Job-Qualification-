@@ -8,7 +8,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: GEMINI_API_KEY
-        value: AIzaSyBjiPfXpQaDff1Teq9pUPiB7hyL-wjuPW0
+        sync: false
       - key: NODE_ENV
         value: production
       - key: PORT
