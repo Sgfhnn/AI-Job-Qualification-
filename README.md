@@ -26,17 +26,6 @@ An AI-powered recruitment platform that helps employers create intelligent job a
 - Google Gemini AI
 - Multer (File uploads)
 
-## 📦 Deployment
-
-**✅ Ready for deployment!** All configuration issues have been resolved.
-
-For deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
-
-### Quick Deploy Links:
-- **Frontend**: Deploy to [Vercel](https://vercel.com)
-- **Backend**: Deploy to [Render](https://render.com)
-
-
 See [SETUP.md](SETUP.md) for detailed local setup instructions.
 
 ## 📄 License
