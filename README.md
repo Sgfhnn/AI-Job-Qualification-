@@ -26,8 +26,6 @@ An AI-powered recruitment platform that helps employers create intelligent job a
 - Google Gemini AI
 - Multer (File uploads)
 
-See [SETUP.md](SETUP.md) for detailed local setup instructions.
-
 ## 📄 License
 
 MIT License
